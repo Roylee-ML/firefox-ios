@@ -871,6 +871,16 @@ class BrowserViewController: UIViewController {
         }
     }
 
+    func switchToTabForURLOrOpen(url: NSURL) {
+        if let tab = tabManager.getTabFor(url) {
+            log.info("Opening existing tab")
+            tabManager.selectTab(tab)
+        } else {
+            log.info("Opening new tab")
+            openURLInNewTab(url)
+        }
+    }
+
     func openURLInNewTab(url: NSURL) {
         if #available(iOS 9, *) {
             openURLInNewTab(url, isPrivate: tabTrayController?.privateMode ?? false)
@@ -1262,6 +1272,13 @@ extension BrowserViewController: BrowserDelegate {
         let sessionRestoreHelper = SessionRestoreHelper(browser: browser)
         sessionRestoreHelper.delegate = self
         browser.addHelper(sessionRestoreHelper, name: SessionRestoreHelper.name())
+
+        let openURL = {(url: NSURL) -> Void in
+            log.info("Opening \(url)")
+            self.tabManager.addTab(NSURLRequest(URL: url))
+        }
+        let spotlightHelper = SpotlightHelper(browser: browser, profile: profile, openURL: openURL)
+        browser.addHelper(spotlightHelper, name: SpotlightHelper.name())
     }
 
     func browser(browser: Browser, willDeleteWebView webView: WKWebView) {
