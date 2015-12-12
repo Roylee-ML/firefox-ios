@@ -123,15 +123,17 @@ class BookmarksPanel: SiteTableViewController, HomePanel {
         }
 
         switch (bookmark) {
-            case let item as BookmarkItem:
-                if item.title.isEmpty {
-                    cell.textLabel?.text = item.url
-                } else {
-                    cell.textLabel?.text = item.title
-                }
-            default:
-                // Bookmark folders don't have a good fallback if there's no title. :(
-                cell.textLabel?.text = bookmark.title
+        case let item as BookmarkItem:
+            if item.title.isEmpty {
+                cell.textLabel?.text = item.url
+            } else {
+                cell.textLabel?.text = item.title
+            }
+        case let separator as BookmarkSeparator:
+            cell.textLabel?.text = "—"
+        default:
+            // Bookmark folders don't have a good fallback if there's no title. :(
+            cell.textLabel?.text = bookmark.title
         }
 
         return cell
@@ -182,28 +184,34 @@ class BookmarksPanel: SiteTableViewController, HomePanel {
 
     func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
         tableView.deselectRowAtIndexPath(indexPath, animated: false)
-        if let source = source {
-            let bookmark = source.current[indexPath.row]
+        guard let source = source else {
+            return
+        }
 
-            switch (bookmark) {
-            case let item as BookmarkItem:
-                homePanelDelegate?.homePanel(self, didSelectURL: NSURL(string: item.url)!, visitType: VisitType.Bookmark)
-                break
+        let bookmark = source.current[indexPath.row]
 
-            case let folder as BookmarkFolder:
-                let nextController = BookmarksPanel()
-                nextController.parentFolders = parentFolders + [source.current]
-                nextController.bookmarkFolder = folder
-                nextController.source = source
-                nextController.homePanelDelegate = self.homePanelDelegate
-                nextController.profile = self.profile
-                self.navigationController?.pushViewController(nextController, animated: true)
-                break
+        switch (bookmark) {
+        case let item as BookmarkItem:
+            homePanelDelegate?.homePanel(self, didSelectURL: NSURL(string: item.url)!, visitType: VisitType.Bookmark)
+            break
 
-            default:
-                // Weird.
-                break        // Just here until there's another executable statement (compiler requires one).
-            }
+        case let item as BookmarkSeparator:
+            break
+
+        case let folder as BookmarkFolder:
+            log.debug("Selected \(folder.guid)")
+            let nextController = BookmarksPanel()
+            nextController.parentFolders = parentFolders + [source.current]
+            nextController.bookmarkFolder = folder
+            nextController.source = source
+            nextController.homePanelDelegate = self.homePanelDelegate
+            nextController.profile = self.profile
+            self.navigationController?.pushViewController(nextController, animated: true)
+            break
+
+        default:
+            // Weird.
+            break        // Just here until there's another executable statement (compiler requires one).
         }
     }
 
